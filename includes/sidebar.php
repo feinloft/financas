@@ -52,6 +52,6 @@ $current_page = $_GET['page'] ?? 'dashboard';
     </ul>
 
     <div class="sidebar-footer" style="padding: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.1); font-size: 0.7rem; color: #7f8c8d; text-align: center;">
-        Versão 1.0.0
+        Versão 1.0.1
     </div>
 </aside>
