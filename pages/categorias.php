@@ -51,7 +51,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirecionar("index.php?page=categorias");
     }
 }
-
+// Dados para Edição
+$edit_data = null;
 if ($action === 'edit' && $edit_id) {
     $stmt = $pdo->prepare("SELECT * FROM categorias WHERE id = ? AND (grupo_id = ? OR ? = 1)");
     $stmt->execute([$edit_id, $grupo_id, $is_admin]);
