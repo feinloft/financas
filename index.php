@@ -27,6 +27,7 @@ $allowed_pages = [
     'categorias',
     'fluxo',
     'usuarios', // Admin check inside the file or here
+    'grupos',   // Admin check inside the file or here
     'perfil'    // Para troca de senha inicial
 ];
 
@@ -36,7 +37,7 @@ if (!in_array($page, $allowed_pages)) {
 }
 
 // Bloqueio de acesso administrativo para usuários comuns
-if ($page === 'usuarios') {
+if ($page === 'usuarios' || $page === 'grupos') {
     exigirAdmin();
 }
 
@@ -48,6 +49,7 @@ $titles = [
     'categorias' => 'Categorias',
     'fluxo' => 'Fluxo de Caixa',
     'usuarios' => 'Gestão de Usuários',
+    'grupos' => 'Gestão de Grupos',
     'perfil' => 'Meu Perfil'
 ];
 $page_title = $titles[$page] ?? 'SGF';

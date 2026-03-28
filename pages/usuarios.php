@@ -16,6 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $nome = trim($_POST['nome'] ?? '');
         $usuario = trim($_POST['usuario'] ?? '');
         $cargo = $_POST['cargo'] ?? 'user';
+        $grupo_id_input = $_POST['grupo_id'] ?? null;
         $senha = $_POST['senha'] ?? '';
 
         if (empty($nome) || empty($usuario)) {
@@ -23,8 +24,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             if ($id) {
                 // Update (sem troca de senha por aqui)
-                $stmt = $pdo->prepare("UPDATE usuarios SET nome = ?, usuario = ?, cargo = ? WHERE id = ?");
-                $stmt->execute([$nome, $usuario, $cargo, $id]);
+                $stmt = $pdo->prepare("UPDATE usuarios SET nome = ?, usuario = ?, cargo = ?, grupo_id = ? WHERE id = ?");
+                $stmt->execute([$nome, $usuario, $cargo, $grupo_id_input, $id]);
                 setMensagem("Usuário atualizado com sucesso!");
             } else {
                 // Create
@@ -32,9 +33,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     setMensagem("A senha é obrigatória para novos usuários.", "danger");
                 } else {
                     $hash = password_hash($senha, PASSWORD_BCRYPT);
-                    $stmt = $pdo->prepare("INSERT INTO usuarios (nome, usuario, senha, cargo) VALUES (?, ?, ?, ?)");
+                    $stmt = $pdo->prepare("INSERT INTO usuarios (nome, usuario, senha, cargo, grupo_id) VALUES (?, ?, ?, ?, ?)");
                     try {
-                        $stmt->execute([$nome, $usuario, $hash, $cargo]);
+                        $stmt->execute([$nome, $usuario, $hash, $cargo, $grupo_id_input]);
                         setMensagem("Usuário criado com sucesso!");
                     } catch (PDOException $e) {
                         setMensagem("Erro: Usuário já existe.", "danger");
@@ -85,9 +86,16 @@ if ($action === 'edit' && $user_edit_id) {
     $user_edit_data = $stmt->fetch();
 }
 
-// Busca todos os usuários
-$stmt = $pdo->query("SELECT * FROM usuarios ORDER BY nome ASC");
+// Busca todos os usuários com o nome do grupo
+$stmt = $pdo->query("SELECT u.*, g.nome as grupo_nome 
+                     FROM usuarios u 
+                     LEFT JOIN grupos g ON u.grupo_id = g.id 
+                     ORDER BY u.nome ASC");
 $usuarios = $stmt->fetchAll();
+
+// Busca todos os grupos para o select
+$stmt = $pdo->query("SELECT * FROM grupos ORDER BY nome ASC");
+$lista_grupos = $stmt->fetchAll();
 ?>
 
 <div class="header-actions" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
@@ -122,6 +130,18 @@ $usuarios = $stmt->fetchAll();
             </select>
         </div>
 
+        <div class="form-group">
+            <label>Grupo</label>
+            <select name="grupo_id" class="form-control" required>
+                <option value="">Selecione um grupo...</option>
+                <?php foreach ($lista_grupos as $g): ?>
+                    <option value="<?= $g['id'] ?>" <?= ($user_edit_data['grupo_id'] ?? '') == $g['id'] ? 'selected' : '' ?>>
+                        <?= s($g['nome']) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+
         <?php if ($action === 'new'): ?>
             <div class="form-group">
                 <label>Senha Inicial</label>
@@ -144,7 +164,7 @@ $usuarios = $stmt->fetchAll();
                 <tr>
                     <th>Nome</th>
                     <th>Usuário</th>
-                    <th>Cargo</th>
+                    <th>Cargo / Grupo</th>
                     <th>Status</th>
                     <th>Ações</th>
                 </tr>
@@ -158,6 +178,8 @@ $usuarios = $stmt->fetchAll();
                             <span class="user-role" style="background: <?= $u['cargo'] === 'admin' ? '#d1ecf1' : '#f8f9fa' ?>;">
                                 <?= s($u['cargo']) ?>
                             </span>
+                            <br>
+                            <small style="color: #666;"><i class="fas fa-users"></i> <?= s($u['grupo_nome'] ?? 'Sem Grupo') ?></small>
                         </td>
                         <td>
                             <span class="badge" style="color: <?= $u['status'] === 'ativo' ? 'var(--success)' : 'var(--danger)' ?>; font-weight: bold;">

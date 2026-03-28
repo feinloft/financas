@@ -5,6 +5,8 @@
  */
 
 $msg = "";
+$grupo_id = getGrupoId();
+$is_admin = ehAdmin();
 $action = $_GET['action'] ?? 'list';
 $edit_id = $_GET['id'] ?? null;
 
@@ -21,13 +23,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             if ($id) {
                 // Update
-                $stmt = $pdo->prepare("UPDATE categorias SET nome = ?, tipo = ?, cor = ? WHERE id = ?");
-                $stmt->execute([$nome, $tipo, $cor, $id]);
+                $stmt = $pdo->prepare("UPDATE categorias SET nome = ?, tipo = ?, cor = ? WHERE id = ? AND (grupo_id = ? OR ? = 1)");
+                $stmt->execute([$nome, $tipo, $cor, $id, $grupo_id, $is_admin]);
                 setMensagem("Categoria atualizada com sucesso!");
             } else {
                 // Create
-                $stmt = $pdo->prepare("INSERT INTO categorias (nome, tipo, cor) VALUES (?, ?, ?)");
-                $stmt->execute([$nome, $tipo, $cor]);
+                $stmt = $pdo->prepare("INSERT INTO categorias (nome, tipo, cor, grupo_id) VALUES (?, ?, ?, ?)");
+                $stmt->execute([$nome, $tipo, $cor, $grupo_id]);
                 setMensagem("Categoria criada com sucesso!");
             }
             redirecionar("index.php?page=categorias");
@@ -42,24 +44,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($stmt->fetchColumn() > 0) {
             setMensagem("Não é possível excluir uma categoria que possui movimentações associadas.", "danger");
         } else {
-            $stmt = $pdo->prepare("DELETE FROM categorias WHERE id = ?");
-            $stmt->execute([$id]);
+            $stmt = $pdo->prepare("DELETE FROM categorias WHERE id = ? AND (grupo_id = ? OR ? = 1)");
+            $stmt->execute([$id, $grupo_id, $is_admin]);
             setMensagem("Categoria excluída com sucesso!");
         }
         redirecionar("index.php?page=categorias");
     }
 }
 
-// Dados para Edição
-$edit_data = null;
 if ($action === 'edit' && $edit_id) {
-    $stmt = $pdo->prepare("SELECT * FROM categorias WHERE id = ?");
-    $stmt->execute([$edit_id]);
+    $stmt = $pdo->prepare("SELECT * FROM categorias WHERE id = ? AND (grupo_id = ? OR ? = 1)");
+    $stmt->execute([$edit_id, $grupo_id, $is_admin]);
     $edit_data = $stmt->fetch();
 }
 
 // Busca Categorias
-$stmt = $pdo->query("SELECT * FROM categorias ORDER BY nome ASC");
+$stmt = $pdo->prepare("SELECT * FROM categorias WHERE (grupo_id = ? OR ? = 1 OR grupo_id IS NULL) ORDER BY nome ASC");
+$stmt->execute([$grupo_id, $is_admin]);
 $categorias = $stmt->fetchAll();
 ?>
 

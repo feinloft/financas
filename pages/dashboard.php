@@ -7,13 +7,16 @@
 $mes_atual = date('m');
 $ano_atual = date('Y');
 
+$grupo_id = getGrupoId();
+$is_admin = ehAdmin();
+
 // 1. Totais do mês atual
 $stmt = $pdo->prepare("SELECT 
     SUM(CASE WHEN tipo = 'receita' THEN valor ELSE 0 END) as total_receita,
     SUM(CASE WHEN tipo = 'despesa' THEN valor ELSE 0 END) as total_despesa
     FROM movimentacoes 
-    WHERE MONTH(data) = ? AND YEAR(data) = ?");
-$stmt->execute([$mes_atual, $ano_atual]);
+    WHERE MONTH(data) = ? AND YEAR(data) = ? AND (? = 1 OR grupo_id = ?)");
+$stmt->execute([$mes_atual, $ano_atual, $is_admin, $grupo_id]);
 $totais = $stmt->fetch();
 
 $total_receita = $totais['total_receita'] ?? 0;
@@ -35,8 +38,8 @@ for ($i = 5; $i >= 0; $i--) {
         SUM(CASE WHEN tipo = 'receita' THEN valor ELSE 0 END) as r,
         SUM(CASE WHEN tipo = 'despesa' THEN valor ELSE 0 END) as d
         FROM movimentacoes 
-        WHERE MONTH(data) = ? AND YEAR(data) = ?");
-    $stmt->execute([$mes_ponto, $ano_ponto]);
+        WHERE MONTH(data) = ? AND YEAR(data) = ? AND (? = 1 OR grupo_id = ?)");
+    $stmt->execute([$mes_ponto, $ano_ponto, $is_admin, $grupo_id]);
     $res = $stmt->fetch();
 
     $grafico_labels[] = $label_ponto;
@@ -51,11 +54,11 @@ $stmt = $pdo->prepare("SELECT
     SUM(m.valor) as total
     FROM movimentacoes m
     JOIN categorias c ON m.categoria_id = c.id
-    WHERE m.tipo = 'despesa' AND MONTH(m.data) = ? AND YEAR(m.data) = ?
+    WHERE m.tipo = 'despesa' AND MONTH(m.data) = ? AND YEAR(m.data) = ? AND (? = 1 OR m.grupo_id = ?)
     GROUP BY c.id
     ORDER BY total DESC
     LIMIT 5");
-$stmt->execute([$mes_atual, $ano_atual]);
+$stmt->execute([$mes_atual, $ano_atual, $is_admin, $grupo_id]);
 $top_categorias = $stmt->fetchAll();
 
 $cat_labels = [];

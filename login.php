@@ -37,6 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['usuario_id'] = $usuario['id'];
             $_SESSION['usuario_nome'] = $usuario['nome'];
             $_SESSION['usuario_cargo'] = $usuario['cargo'];
+            $_SESSION['usuario_grupo_id'] = $usuario['grupo_id'];
             $_SESSION['primeiro_acesso'] = $usuario['primeiro_acesso'];
 
             // Se for primeiro acesso, redireciona para troca de senha (opcional, mas solicitado pelo flag)

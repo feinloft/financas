@@ -43,6 +43,11 @@ $current_page = $_GET['page'] ?? 'dashboard';
                     <i class="fas fa-users-cog"></i> Usuários (Admin)
                 </a>
             </li>
+            <li class="<?= $current_page === 'grupos' ? 'active' : '' ?>">
+                <a href="index.php?page=grupos" style="color: #3498db;">
+                    <i class="fas fa-layer-group"></i> Grupos (Admin)
+                </a>
+            </li>
         <?php endif; ?>
     </ul>
 

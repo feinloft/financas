@@ -50,6 +50,13 @@ function exigirAdmin() {
 }
 
 /**
+ * Retorna o ID do grupo do usuário logado
+ */
+function getGrupoId() {
+    return $_SESSION['usuario_grupo_id'] ?? null;
+}
+
+/**
  * Realiza o logout do usuário
  */
 function logout() {

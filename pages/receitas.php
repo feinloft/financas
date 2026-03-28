@@ -5,6 +5,8 @@
  */
 
 $user_id = $_SESSION['usuario_id'];
+$grupo_id = getGrupoId();
+$is_admin = ehAdmin();
 $mes_filtro = $_GET['mes'] ?? date('m');
 $ano_filtro = $_GET['ano'] ?? date('Y');
 $cat_filtro = $_GET['categoria'] ?? '';
@@ -23,12 +25,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             setMensagem("Preencha os campos obrigatórios.", "danger");
         } else {
             if ($id) {
-                $stmt = $pdo->prepare("UPDATE movimentacoes SET data = ?, descricao = ?, categoria_id = ?, valor = ?, observacoes = ? WHERE id = ? AND usuario_id = ?");
-                $stmt->execute([$data, $descricao, $categoria_id, $valor, $observacoes, $id, $user_id]);
+                $stmt = $pdo->prepare("UPDATE movimentacoes SET data = ?, descricao = ?, categoria_id = ?, valor = ?, observacoes = ? WHERE id = ? AND (grupo_id = ? OR ? = 1)");
+                $stmt->execute([$data, $descricao, $categoria_id, $valor, $observacoes, $id, $grupo_id, $is_admin]);
                 setMensagem("Receita atualizada!");
             } else {
-                $stmt = $pdo->prepare("INSERT INTO movimentacoes (usuario_id, categoria_id, tipo, data, valor, descricao, observacoes) VALUES (?, ?, 'receita', ?, ?, ?, ?)");
-                $stmt->execute([$user_id, $categoria_id, $data, $valor, $descricao, $observacoes]);
+                $stmt = $pdo->prepare("INSERT INTO movimentacoes (usuario_id, grupo_id, categoria_id, tipo, data, valor, descricao, observacoes) VALUES (?, ?, ?, 'receita', ?, ?, ?, ?)");
+                $stmt->execute([$user_id, $grupo_id, $categoria_id, $data, $valor, $descricao, $observacoes]);
                 setMensagem("Receita adicionada!");
             }
             redirecionar("index.php?page=receitas&mes=$mes_filtro&ano=$ano_filtro");
@@ -37,8 +39,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (isset($_POST['delete_movimentacao'])) {
         $id = $_POST['id'] ?? null;
-        $stmt = $pdo->prepare("DELETE FROM movimentacoes WHERE id = ? AND usuario_id = ?");
-        $stmt->execute([$id, $user_id]);
+        $stmt = $pdo->prepare("DELETE FROM movimentacoes WHERE id = ? AND (grupo_id = ? OR ? = 1)");
+        $stmt->execute([$id, $grupo_id, $is_admin]);
         setMensagem("Receita removida!");
         redirecionar("index.php?page=receitas&mes=$mes_filtro&ano=$ano_filtro");
     }
@@ -47,22 +49,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Dados para Edição
 $edit_data = null;
 if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) {
-    $stmt = $pdo->prepare("SELECT * FROM movimentacoes WHERE id = ? AND usuario_id = ?");
-    $stmt->execute([$_GET['id'], $user_id]);
+    $stmt = $pdo->prepare("SELECT * FROM movimentacoes WHERE id = ? AND (grupo_id = ? OR ? = 1)");
+    $stmt->execute([$_GET['id'], $grupo_id, $is_admin]);
     $edit_data = $stmt->fetch();
 }
 
 // Busca Categorias de Receita
-$stmt = $pdo->query("SELECT * FROM categorias WHERE tipo IN ('receita', 'ambos') ORDER BY nome ASC");
+$stmt = $pdo->prepare("SELECT * FROM categorias WHERE tipo IN ('receita', 'ambos') AND (grupo_id = ? OR ? = 1 OR grupo_id IS NULL) ORDER BY nome ASC");
+$stmt->execute([$grupo_id, $is_admin]);
 $categorias = $stmt->fetchAll();
 
 // Busca Receitas com Filtros
 $query = "SELECT m.*, c.nome as categoria_nome, c.cor as categoria_cor 
           FROM movimentacoes m 
           LEFT JOIN categorias c ON m.categoria_id = c.id 
-          WHERE m.usuario_id = ? AND m.tipo = 'receita' 
+          WHERE (? = 1 OR m.grupo_id = ?) AND m.tipo = 'receita' 
           AND MONTH(m.data) = ? AND YEAR(m.data) = ?";
-$params = [$user_id, $mes_filtro, $ano_filtro];
+$params = [$is_admin, $grupo_id, $mes_filtro, $ano_filtro];
 
 if ($cat_filtro) {
     $query .= " AND m.categoria_id = ?";

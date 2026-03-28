@@ -5,6 +5,8 @@
  */
 
 $user_id = $_SESSION['usuario_id'];
+$grupo_id = getGrupoId();
+$is_admin = ehAdmin();
 $ano_filtro = $_GET['ano'] ?? date('Y');
 
 // 1. Coleta dados mensais
@@ -21,8 +23,8 @@ $saldo_acumulado = 0;
 // Busca saldo anterior (antes do ano selecionado)
 $stmt = $pdo->prepare("SELECT 
     SUM(CASE WHEN tipo = 'receita' THEN valor ELSE -valor END) as anterior 
-    FROM movimentacoes WHERE usuario_id = ? AND YEAR(data) < ?");
-$stmt->execute([$user_id, $ano_filtro]);
+    FROM movimentacoes WHERE (? = 1 OR grupo_id = ?) AND YEAR(data) < ?");
+$stmt->execute([$is_admin, $grupo_id, $ano_filtro]);
 $saldo_acumulado = $stmt->fetchColumn() ?: 0;
 
 for ($m = 1; $m <= 12; $m++) {
@@ -32,8 +34,8 @@ for ($m = 1; $m <= 12; $m++) {
         SUM(CASE WHEN tipo = 'receita' THEN valor ELSE 0 END) as receitas,
         SUM(CASE WHEN tipo = 'despesa' THEN valor ELSE 0 END) as despesas
         FROM movimentacoes 
-        WHERE usuario_id = ? AND MONTH(data) = ? AND YEAR(data) = ?");
-    $stmt->execute([$user_id, $mes_str, $ano_filtro]);
+        WHERE (? = 1 OR grupo_id = ?) AND MONTH(data) = ? AND YEAR(data) = ?");
+    $stmt->execute([$is_admin, $grupo_id, $mes_str, $ano_filtro]);
     $res = $stmt->fetch();
     
     $receitas = $res['receitas'] ?? 0;
